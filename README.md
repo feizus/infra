@@ -27,9 +27,9 @@ _Предложить вариант решения для подключени�
 ~/.ssh/config
 Host bastion
 		Hostname 35.217.54.73
-		User akozhin
+		User astarot_dead
 		Port 22
-		IdentityFile ~/.ssh/akozhin		
+		IdentityFile ~/.ssh/astarot_dead		
 
 Host internal
 		Hostname localhost
