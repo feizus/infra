@@ -97,30 +97,5 @@ gcloud compute instances create reddit-app\
 
 *Результат выполнения домашнего задания*
 
-testapp_IP = 34.76.204.210
-testapp_port = 9292
-
-# Homework 6 GCP & cli
-
-*Создание правила для firewall*
-```bash
-gcloud compute --project=infra-235119 firewall-rules create default-puma-server-1 --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:9292 --source-ranges=0.0.0.0/0 --target-tags=puma-server
-```
-
-*Создание виртуальной машины со скриптом запуска*
-
-```bash
-gcloud compute instances create reddit-app\
-  --boot-disk-size=10GB \
-  --image-family ubuntu-1604-lts \
-  --image-project=ubuntu-os-cloud \
-  --machine-type=g1-small \
-  --tags puma-server \
-  --restart-on-failure \
-  --metadata-from-file startup-script=startup.sh
-```
-
-*Результат выполнения домашнего задания*
-
 testapp_IP = 35.204.198.92
 testapp_port = 9292
