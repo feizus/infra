@@ -104,7 +104,7 @@ testapp_port = 9292
 
 *Создание правила для firewall*
 ```bash
-gcloud compute --project=infra-235119 firewall-rules create default-puma-server-1 --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:9292 --source-ranges=0.0.0.0/0 --target-tags=puma-serve
+gcloud compute --project=infra-235119 firewall-rules create default-puma-server-1 --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:9292 --source-ranges=0.0.0.0/0 --target-tags=puma-server
 ```
 
 *Создание виртуальной машины со скриптом запуска*
