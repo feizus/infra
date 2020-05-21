@@ -99,3 +99,36 @@ gcloud compute instances create reddit-app\
 
 testapp_IP = 35.204.198.92
 testapp_port = 9292
+
+# Homework 7 Packer
+
+- [Packer](https://www.packer.io/downloads.html)
+
+Для проверки конфигурации можно использовать команду `validate` в том числе вместе с передачей файла с переменными.
+
+```bash
+packer validate -var-file variables.json ubuntu16.json
+```
+
+Данная команда проверит синтаксис, но не проверит параметры. При выполнении ДЗ я получил ошибки: пропущена запятая, не заполнен обязательный параметр.
+Чтобы переменную сделать обязательной для заполнения нужно в блоке variables значение по умолчанию указать `null`.  Для задания массивов используется строка со списком значений через запятую.
+
+```JSON
+"variables" : {
+    "project_id" : null,
+    "source_image_family" : null,
+    "machine_type" : null,
+    "image_description" : "Reddit base app image with rupy and mongodb",
+    "disk_size" : "10",
+    "disk_type" : "pd-standard",
+    "tags" : "puma-server"
+  }
+  ```
+Ошибка некорректного заполнения значений будет найдена только при создании образа.
+
+Синтаксис использования значений переменных в конфигурации `{{user ``var_name``}}`. Ссылка на массив не отличается синтаксически от ссылки на строку.
+
+*Полезные ссылки*
+
+- [Systemd за пять минут](https://habr.com/ru/company/southbridge/blog/255845/)
+- [systemd: The Good Parts](https://www.hashicorp.com/resources/systemd-the-good-parts)
