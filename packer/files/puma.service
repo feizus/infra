@@ -1,0 +1,15 @@
+[Unit]
+Description=My reddit app
+After=mongod.service
+After=network.target
+Requires=mongod.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/puma
+WorkingDirectory=/home/appuser/reddit
+User=appuser
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
