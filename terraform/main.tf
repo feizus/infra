@@ -12,10 +12,11 @@ provider "google" {
   region  = "${var.region}"
 }
 
-resource "google_compute_instance" "app" {
-  name         = "reddit-app"
+resource "google_compute_instance" "app-1" {
+#  name         = "reddit-app"
+  name = "${var.app_name}-1"
   machine_type = "g1-small"
-  zone         = "europe-west1-b"
+  zone         = "${var.zone}"
 
   # определение загрузочного диска
   boot_disk {
@@ -57,6 +58,9 @@ resource "google_compute_instance" "app" {
   provisioner "remote-exec" {
     script = "files/deploy.sh"
   }
+
+metadata_startup_script = "sudo apt-get update; sudo apt-get install -yq mc"
+
 }
 
 resource "google_compute_firewall" "firewall_puma" {

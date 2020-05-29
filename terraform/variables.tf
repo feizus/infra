@@ -21,3 +21,17 @@ variable "private_key_path" {
 variable disk_image {
   description = "Disk image"
 }
+
+variable app_name {
+  description = "App name"
+}
+
+variable "app_project" {
+  type = "string"
+  description = "GCP project name"
+}
+
+variable zone {
+  description = "Time Zone"
+}
+
