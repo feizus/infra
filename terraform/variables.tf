@@ -34,4 +34,3 @@ variable "app_project" {
 variable zone {
   description = "Time Zone"
 }
-

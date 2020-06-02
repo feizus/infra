@@ -14,9 +14,9 @@ provider "google" {
 
 resource "google_compute_instance" "app" {
   #name         = "reddit-app"
-  #name = "${var.app_name}-1"
-  name = "reddit-app-${count.index + 1}"
-  count = 2
+  name = "${var.app_name}-1"
+  # name = "reddit-app-${count.index + 1}"
+  # count = 2
   machine_type = "f1-micro"
   zone         = "${var.zone}"
   # определение загрузочного диска
