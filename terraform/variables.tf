@@ -27,7 +27,7 @@ variable app_name {
 }
 
 variable "app_project" {
-  type = "string"
+  type        = "string"
   description = "GCP project name"
 }
 

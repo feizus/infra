@@ -15,10 +15,13 @@ provider "google" {
 resource "google_compute_instance" "app" {
   #name         = "reddit-app"
   name = "${var.app_name}-1"
+
   # name = "reddit-app-${count.index + 1}"
   # count = 2
   machine_type = "f1-micro"
-  zone         = "${var.zone}"
+
+  zone = "${var.zone}"
+
   # определение загрузочного диска
   boot_disk {
     initialize_params {
@@ -60,8 +63,7 @@ resource "google_compute_instance" "app" {
     script = "files/deploy.sh"
   }
 
-metadata_startup_script = "sudo apt-get update; sudo apt-get install -yq mc"
-
+  metadata_startup_script = "sudo apt-get update; sudo apt-get install -yq mc"
 }
 
 resource "google_compute_firewall" "firewall_puma" {
@@ -83,6 +85,23 @@ resource "google_compute_firewall" "firewall_puma" {
   target_tags = ["reddit-app"]
 }
 
+resource "google_compute_firewall" "firewall_ssh" {
+  name    = "default-allow-ssh"
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+}
+
+resource "google_compute_address" "app_ip" {
+  name        = "reddit-app-ip"
+  description = "Allow SSH from anywhere"
+}
+
 #resource "google_compute_project_metadata" "ssh_keys" {
 #    metadata {
 #	ssh-keys = <<EOF
@@ -92,3 +111,4 @@ resource "google_compute_firewall" "firewall_puma" {
 #EOF
 #    }
 #}
+
