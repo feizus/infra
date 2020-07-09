@@ -132,3 +132,236 @@ packer validate -var-file variables.json ubuntu16.json
 
 - [Systemd за пять минут](https://habr.com/ru/company/southbridge/blog/255845/)
 - [systemd: The Good Parts](https://www.hashicorp.com/resources/systemd-the-good-parts)
+
+# Homework 10 Ansible
+
+Нужен Python 2.7: 
+```bash
+$ python --version
+```
+
+Утановка pip:
+```bash
+apt install python-pip -y
+```
+
+При невозможности установить Ansible из pip:
+```bash
+pip install ansible>=2.4
+```
+
+Проверяем, что Ansible установлен:
+```bash
+$ ansible --version
+ansible 2.4.x.x
+```
+
+Укажем значения по умолчанию для работы Ansible:
+~/ansible/ansible.cfg
+```
+[defaults]
+inventory = ./inventory
+remote_user = appuser
+private_key_file = ~/.ssh/appuser
+host_key_checking = False
+retry_files_enabled = False
+```
+
+Создадим инвентори файл ansible/inventory, в котором укажем информацию о созданном инстансе приложения и параметры подключения к нему по SSH:
+~/ansible/inventory:
+```
+[app] #Это название группы
+appserver ansible_host=x.x.x.x #Cписок хостов в данной группе
+
+[db]
+dbserver ansible_host=y.y.y.y
+```
+
+Ping-модуль позволяет протестировать SSH-соединение, при этом ничего не изменяя на самом хосте.
+```bash
+$ ansible appserver -i ./inventory -m ping
+```
+- -m ping - вызываемый модуль
+- -i ./inventory - путь до файла инвентори
+- appserver - Имя хоста, которое указали в инвентори, откуда
+
+Ansible yзнает, как подключаться к хосту вывод команды:
+```
+appserver | SUCCESS => {
+"changed": false,
+"ping": "pong"
+}
+```
+
+Модуль command позволяет запускать произвольные команды на удаленном хосте.
+
+Выполним команду uptime для проверки времени работы инстанса. Команду передадим как аргумент для данного модуля, использовав опцию -a:
+```bash
+$ ansible dbserver -m command -a uptime
+dbserver | SUCCESS | rc=0 >>
+07:47:41 up 24 min, 1 user, load average: 0.00, 0.00, 0.03
+```
+
+мы можем управлять не отдельными хостами, а целыми группами, ссылаясь на имя группы:
+```bash
+$ ansible app -m ping
+appserver | SUCCESS => {
+"changed": false,
+"ping": "pong"
+}
+```
+- app - имя группы
+- -m ping - имя модуля Ansible
+- appserver - имя сервера в группе, для которого применился модуль
+
+Начиная с Ansible 2.4 появилась возможность использовать YAML для inventory.
+
+- [Документация по inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html)
+
+Отличие форматов INI и YAML:
+Обычный INI выглядит так:
+```
+mail.example.com
+
+[webservers]
+foo.example.com
+bar.example.com
+
+[dbservers]
+one.example.com
+two.example.com
+three.example.com
+```
+Этот же инвентори в формате YAML:
+```
+all:
+  hosts:
+    mail.example.com:
+  children:
+    webservers:
+      hosts:
+        foo.example.com:
+        bar.example.com:
+    dbservers:
+      hosts:
+        one.example.com:
+        two.example.com:
+        three.example.com:
+```
+
+Создадим файл inventory.yml
+~/ansible/inventory.yml 
+```
+app:
+  hosts:
+    appserver:
+      ansible_host: x.x.x.x
+
+db:
+  hosts:
+    dbserver:
+      ansible_host: y.y.y.y
+```
+
+##Выполнение команд
+
+Проверим с помощью модуля command, что на app сервере установлены компоненты для работы приложения (ruby и bundler):
+```bash
+$ ansible app -m command -a 'ruby -v'
+appserver | SUCCESS | rc=0 >>
+ruby 2.3.1p112 (2016-04-26) [x86_64-linux-gnu]
+$ ansible app -m command -a 'bundler -v'
+appserver | SUCCESS | rc=0 >>
+Bundler version 1.11.2
+```
+
+То же самое с помощью модуля shell:
+```bash
+$ ansible app -m shell -a 'ruby -v; bundler -v'
+appserver | SUCCESS | rc=0 >>
+ruby 2.3.1p112 (2016-04-26) [x86_64-linux-gnu]
+Bundler version 1.11.2
+```
+
+Модуль command выполняет команды, не используя оболочку (sh, bash), поэтому в нем не работают перенаправления потоков и нет доступа к некоторым переменным окружения.
+
+Проверим на хосте с БД статус сервиса MongoDB с помощью модуля command или shell. (Эта операция аналогична запуску на хосте команды systemctl status mongod):
+```bash
+$ ansible db -m command -a 'systemctl status mongod'
+dbserver | SUCCESS | rc=0 >>
+● mongod.service - High-performance, schema-free document-oriented database
+$ ansible db -m shell -a 'systemctl status mongod'
+dbserver | SUCCESS | rc=0 >>
+● mongod.service - High-performance, schema-free document-oriented database
+```
+
+А можем выполнить ту же операцию используя модуль systemd, который предназначен для управления сервисами:
+```bash
+$ ansible db -m systemd -a name=mongod
+dbserver | SUCCESS => {
+"changed": false,
+"name": "mongod",
+"status": {
+"ActiveState": "active", ...
+```
+
+Или еще лучше с помощью модуля service, который более универсален и будет работать и в более старых ОС с init.dинициализацией:
+```bash
+$ ansible db -m service -a name=mongod
+dbserver | SUCCESS => {
+"changed": false,
+"name": "mongod",
+"status": {
+"ActiveState": "active", ...
+```
+
+Используем модуль git для клонирования репозитория с приложением на app сервер:
+```bash
+$ ansible app -m git -a \
+'repo=https://github.com/express42/reddit.git dest=/home/appuser/reddit'
+appserver | SUCCESS => {
+"after": "61a7f75b3d3e6f7a8f279896fb4e9f0556e1a70a",
+"before": null,
+"changed": true
+}
+```
+
+И попробуем сделать то же самое с модулем command:
+```bash
+$ ansible app -m command -a \
+'git clone https://github.com/express42/reddit.git /home/appuser/reddit'
+appserver | SUCCESS | rc=0 >>
+Cloning into '/home/appuser/reddit'...
+```
+
+Удалим:
+```bash
+ansible app -m command -a 'rm -rf ~/reddit'
+```
+
+##Напишем простой плейбук
+Реализуем простой плейбук, который выполняет аналогичные действия (клонирование репозитория).
+
+Создайте файл ansible/clone.yml
+```
+---
+- name: Clone
+  hosts: app
+  tasks:
+    - name: Clone repo
+      git:
+        repo: https://github.com/express42/reddit.git
+        dest: /home/appuser/reddit
+```
+
+И выполните: 
+```bash
+$ ansible-playbook clone.yml
+PLAY RECAP
+***************************************************************************
+appserver : ok=2 changed=0 unreachable=0 failed=0
+```
+
+- [Динамическое инвентори в Ansible](https://medium.com/@Nklya/%D0%B4%D0%B8%D0%BD%D0%B0%D0%BC%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5-%D0%B8%D0%BD%D0%B2%D0%B5%D0%BD%D1%82%D0%BE%D1%80%D0%B8-%D0%B2-ansible-9ee880d540d6)
+- [Ansible — GCP dynamic inventory 2.0](https://medium.com/@Temikus/ansible-gcp-dynamic-inventory-2-0-7f3531b28434)
+
