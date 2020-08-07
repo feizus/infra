@@ -365,3 +365,128 @@ appserver : ok=2 changed=0 unreachable=0 failed=0
 - [Динамическое инвентори в Ansible](https://medium.com/@Nklya/%D0%B4%D0%B8%D0%BD%D0%B0%D0%BC%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5-%D0%B8%D0%BD%D0%B2%D0%B5%D0%BD%D1%82%D0%BE%D1%80%D0%B8-%D0%B2-ansible-9ee880d540d6)
 - [Ansible — GCP dynamic inventory 2.0](https://medium.com/@Temikus/ansible-gcp-dynamic-inventory-2-0-7f3531b28434)
 
+
+# Homework 11 Ansible-2
+
+Основной конфиг:
+site.yml
+```ansible
+---
+    - import_playbook: db.yml
+    - import_playbook: app.yml
+    - import_playbook: deploy.yml
+```
+
+Настройка инстанса DB:
+db.yml
+```ansible
+---
+    - name: Configure MongoDB # <-- Словесное описание сценария (name)
+      hosts: db # <-- Для каких хостов будут выполняться описанные ниже таски (hosts)
+      become: true # <-- Выполнить задание от root
+      vars:
+         mongo_bind_ip: 0.0.0.0 # <-- Переменная задается в блоке vars
+      tasks: # <-- Блок тасков (заданий), которые будут выполняться для данных хостов
+        - name: Change mongo config file # <-- Словесное описание сценария (name)
+          template:
+             src: templates/mongod.conf.j2 # <-- Выполнить задание от root
+             dest: /etc/mongod.conf # <-- Путь на удаленном хосте
+             mode: 0644 # <-- Права на файл, которые нужно установить
+          notify: restart mongod
+	  #tags: db-tag # <-- Список тэгов для задачи, нам больше не нужен
+    
+      handlers:
+      - name: restart mongod
+        service: name=mongod state=restarted
+```
+Шаблон конфига MongoDB:
+templates/mongod.conf.j2
+```j2
+# Where and how to store data.
+storage:
+  dbPath: /var/lib/mongodb
+  journal:
+    enabled: true
+
+# Where to write logging data.
+systemLog:
+  destination: file
+  logAppend: true
+  path: /var/log/mongodb/mongod.log
+# Network interfaces
+net:
+  # default - один из фильтров Jinja2, он задает значение по умолчанию,
+  # если переменная слева не определена
+  port: {{ mongo_port | default('27017') }}
+  bindIp: {{ mongo_bind_ip }} # <-- Подстановка значения переменной
+```
+
+Настройка инстанса приложения:
+app.yml
+```ansible
+---
+    - name: Configure App 
+      hosts: app # <-- Для каких хостов будут выполняться описанные ниже таски (hosts)
+      become: true # <-- Выполнить задание от root
+      vars:
+         db_host: 10.132.15.216 # <-- IP инстанса DB
+      tasks: # <-- Блок тасков (заданий), которые будут выполняться для данных хостов
+        - name: Add unit file for Puma
+          copy:
+             src: files/puma.service # <-- Выполнить задание от root
+             dest: /etc/systemd/system/puma.service # <-- Путь на удаленном хосте
+          notify: reload puma
+    
+        - name: Add config for DB connection
+          template:
+             src: templates/db_config.j2
+             dest: /home/appuser/db_config
+             owner: appuser
+             group: appuser
+    
+        - name: enable puma
+          systemd: name=puma enabled=yes
+    
+      handlers:
+      - name: reload puma
+        systemd: name=puma state=restarted
+```
+Деплой:
+deploy.yml
+```ansible
+---
+    - name: Deploy application
+      hosts: app # <-- Для каких хостов будут выполняться описанные ниже таски (hosts)
+      tasks: # <-- Блок тасков (заданий), которые будут выполняться для данных хостов
+        - name: Fetch latest version of application code
+          git:
+             repo: 'https://github.com/express42/reddit.git'
+             dest: /home/appuser/reddit
+             version: monolith # <-- Указываем нужную ветку
+          notify: restart puma
+
+        - name: Bundle install
+          bundler:
+             state: present
+             chdir: /home/appuser/reddit # <-- В какой директории выполнить команду bundle
+
+      handlers:
+        - name: restart puma
+          become: true # <-- Выполнить задание от root
+          systemd: name=puma state=restarted
+```
+- [Ansible — All modules](https://docs.ansible.com/ansible/latest/modules/list_of_all_modules.html)
+- [Ansible — Manages apt-packages](https://docs.ansible.com/ansible/latest/modules/apt_module.html#apt-module)
+- [Ansible — Add or remove an apt key](https://docs.ansible.com/ansible/latest/modules/apt_key_module.html#apt-key-module)
+- [Ansible — Loops](https://docs.ansible.com/ansible/latest/user_guide/playbooks_loops.html)
+
+Применение плейбука к хостам осуществляется при помощи
+команды ansible-playbook.
+
+--check — позволяет произвести "пробный прогон" плейбука.
+--limit — ограничиваем группу хостов, для которых применить плейбук
+--tags — ограничиваем группу тасков, для которых установлен нужный тег
+
+```bash
+ansible-playbook reddit_app.yml --check --limit app --tags app-tag
+```
