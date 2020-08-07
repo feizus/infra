@@ -3,17 +3,17 @@
 	"project_id" : "269512",
 	"source_image_family" : "reddit-base",
 	"machine_type" : "f1-micro",
-	"image_description" : "Reddit base app image with mongodb",
+	"image_description" : "Reddit base app image with rupy",
 	"disk_size" : "10",
 	"disk_type" : "pd-standard",
-	"tags" : "reddit-db"
+	"tags" : "reddit-app"
     },
     "builders": [
 	{
 	    "type" : "googlecompute",
 	    "project_id" : "infra-{{user `project_id`}}",
-	    "image_name" : "reddit-db-{{timestamp}}",
-	    "image_family" : "reddit-db",
+	    "image_name" : "reddit-app-{{timestamp}}",
+	    "image_family" : "reddit-app",
 	    "image_description" : "{{user `image_description`}}",
 	    "source_image_family" : "{{user `source_image_family`}}",
 	    "zone" : "europe-west1-b",
@@ -27,8 +27,9 @@
     ],
     "provisioners": [
 	{
-	    "type": "ansible",
-		"playbook_file": "ansible/packer_db.yml"
+	    "type" : "shell",
+	    "script" : "scripts/install_ruby.sh",
+	    "execute_command" : "sudo {{.Path}}"
 	}
     ]
 }

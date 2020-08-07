@@ -1,0 +1,17 @@
+
+---
+    - name: Install Ruby && Bundler
+      hosts: all
+      become: true
+      tasks:
+      # Установим в цикле все зависимости
+      - name: install python-apt 
+        raw: test -e  /usr/lib/python2.7/dist-packages/apt || (apt install -y python2.7-apt)
+        
+      - name: Install ruby and rubygems and required packages
+        apt:
+            name: ['ruby-full', 'ruby-bundler', 'build-essential']
+            state: present
+            update_cache: yes
+
+          

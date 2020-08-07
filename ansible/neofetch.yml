@@ -1,0 +1,11 @@
+---
+    - name: Install neofetch
+      hosts: localhost
+      become: true
+      tasks:
+      # Установим в цикле все зависимости
+      - name: Install neofetch
+        apt:
+            name: 'neofetch'
+            state: present
+            update_cache: yes
