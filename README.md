@@ -365,3 +365,16 @@ appserver : ok=2 changed=0 unreachable=0 failed=0
 - [Динамическое инвентори в Ansible](https://medium.com/@Nklya/%D0%B4%D0%B8%D0%BD%D0%B0%D0%BC%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5-%D0%B8%D0%BD%D0%B2%D0%B5%D0%BD%D1%82%D0%BE%D1%80%D0%B8-%D0%B2-ansible-9ee880d540d6)
 - [Ansible — GCP dynamic inventory 2.0](https://medium.com/@Temikus/ansible-gcp-dynamic-inventory-2-0-7f3531b28434)
 
+
+# Homework 10 Ansible
+
+Основной конфиг:
+site.yml
+```site.yml
+---
+    - import_playbook: db.yml
+    - import_playbook: app.yml
+    - import_playbook: deploy.yml
+```
+
+
