@@ -104,27 +104,30 @@ testapp_port = 9292
 
 - [Packer](https://www.packer.io/downloads.html)
 
+Распакуйте скачанный архив и поместите бинарный файл в директорию, путь до которой содержится в переменной окружения PATH.
+
+Проверить установку Packer можно командой:
+```bash
+$ packer -v
+```
+
+Создайте АDC:
+```bash
+$ gcloud auth application-default login
+```
+
 Для проверки конфигурации можно использовать команду `validate` в том числе вместе с передачей файла с переменными.
 
 ```bash
+packer validate ubuntu16.json
 packer validate -var-file variables.json ubuntu16.json
 ```
 
-Данная команда проверит синтаксис, но не проверит параметры. При выполнении ДЗ я получил ошибки: пропущена запятая, не заполнен обязательный параметр.
-Чтобы переменную сделать обязательной для заполнения нужно в блоке variables значение по умолчанию указать `null`.  Для задания массивов используется строка со списком значений через запятую.
+Если проверка на ошибки прошла успешно, то запустите build образа:
 
-```JSON
-"variables" : {
-    "project_id" : null,
-    "source_image_family" : null,
-    "machine_type" : null,
-    "image_description" : "Reddit base app image with rupy and mongodb",
-    "disk_size" : "10",
-    "disk_type" : "pd-standard",
-    "tags" : "puma-server"
-  }
-  ```
-Ошибка некорректного заполнения значений будет найдена только при создании образа.
+```bash
+$ packer build ubuntu16.json
+```
 
 Синтаксис использования значений переменных в конфигурации `{{user ``var_name``}}`. Ссылка на массив не отличается синтаксически от ссылки на строку.
 
@@ -132,6 +135,38 @@ packer validate -var-file variables.json ubuntu16.json
 
 - [Systemd за пять минут](https://habr.com/ru/company/southbridge/blog/255845/)
 - [systemd: The Good Parts](https://www.hashicorp.com/resources/systemd-the-good-parts)
+
+# Homework 8 Terraform
+
+- [Terraform](https://www.terraform.io/downloads.html)
+
+Распакуйте скачанный архив и поместите бинарный файл в директорию, путь до которой содержится в переменной окружения PATH.
+В данном курсе мы используем версию 0.11.x. Версии 0.12 в курсе не поддерживаются.
+
+Проверить установку Terraform можно командой:
+```bash
+$ terraform -v
+```
+
+Провайдеры Terraform являются загружаемыми модулями, начиная с версии 0.10. Для того чтобы загрузить провайдер и начать его использовать выполните следующую команду в директории terraform:
+
+```bash
+$ terraform init
+```
+
+Перед тем как дать команду terraform'у применить изменения, хорошей практикой является предварительно посмотреть, какие изменения terraform собирается произвести относительно состояния известных ему ресурсов (tfstate файл) 
+Выполните команду планирования изменений в директории terraform:
+```bash
+$ terraform plan
+```
+Для того чтобы запустить инстанс VM, описание характеристик которого мы описали в конфигурационном файле main.tf, используем команду:
+```bash
+$ terraform apply
+```
+Чтобы удалить все созданные ресурсы:
+```bash
+$ terraform destroy
+```
 
 # Homework 10 Ansible
 
@@ -490,4 +525,247 @@ deploy.yml
 ```bash
 ansible-playbook reddit_app.yml --check --limit app --tags app-tag
 ```
+
 # Homework 12 Ansible-3
+
+- [Ansible Galaxy](https://galaxy.ansible.com/)
+
+Ansible имеет специальную команду для работы с Galaxy. Получить справку по этой команде можно на сайте или
+использовав команду:
+```bash
+$ ansible-galaxy -h
+```
+Также команда ansible-galaxy init позволяет нам создать структуру роли в соответсвии с принятым на Galaxy форматом.
+```bash
+$ ansible-galaxy init app
+$ ansible-galaxy init db
+```
+
+```bash
+$ tree db
+```
+db
+├── README.md
+├── defaults # <-- Директория для переменных по умолчанию
+│   └── main.yml
+├── handlers
+│   └── main.yml
+├── meta # <-- Информация о роли, создателе и зависимостях
+│   └── main.yml
+├── tasks # <-- Директория для тасков
+│   └── main.yml
+├── tests
+│   ├── inventory
+│   └── test.yml
+└── vars # <-- Директория для переменных, которые не должны
+    └──main.yml # переопределяться пользователем
+
+Если роль разрастается:
+
+example-role
+├── README.md
+├── defaults
+│   └── main.yml
+├── tasks
+│   ├── repository.yml
+│   ├── install.yml
+│   ├── configure.yml
+│   ├── update.yml
+│   └── main.yml
+└── meta
+    └──main.yml
+
+example-role/tasks/main.yml
+- include: repository.yml
+- include: install.yml
+- include: configure.yml
+
+Кросс-платформенные роли:
+
+example-role
+├── README.md
+├── defaults
+│   └── main.yml
+├── tasks
+│   ├── linux.yml
+│   ├── windows.yml
+│   └── main.yml
+└──meta
+    └──main.yml
+
+example-role/tasks/main.yml
+- include: linux.yml
+when: ansible_os_family == 'RedHat'
+- include: windows.yml
+when: ansible_os_family == 'Windows'
+
+- [Пример ansible.cfg с описанием всех параметров доступен](https://raw.githubusercontent.com/ansible/ansible/devel/examples/ansible.cfg)
+
+Пример файла ansible.cfg:
+[defaults]
+roles_path = ./.imported_roles:./roles
+timeout = 10
+vault_password_file = vault.key
+retry_files_enabled = False
+[ssh_connection]
+ssh_args=-o ForwardAgent=yes
+[diff]
+always = True
+context = 5
+
+Окружения в Ansible:
+ansible.cfg
+playbooks
+environments
+├── dev
+│   ├── group_vars
+│   │   ├── webservers
+│   │   └── databases
+│   ├── requirements.yml
+│   ├── credentials.yml # У окружений отдельные файлы с зашифрованными переменными
+│   └── inventory
+└──prod
+    ├── group_vars
+    │   ├── webservers
+    │   └── databases
+    ├── requirements.yml
+    ├── credentials.yml # У окружений отдельные файлы с зашифрованными переменными
+    └──inventory
+
+Типовые файлы с переменными окружений:
+environments/<env_name>/group_vars
+environments/<env_name>/host_vars
+environments/<env_name>/credentials.yml
+
+Например, чтобы задеплоить приложение на prod окружении мы должны теперь написать:
+```bash
+$ ansible-playbook -i environments/prod/inventory deploy.yml
+```
+Таким образом сразу видно, с каким окружением мы работаем.
+В нашем случае, мы также определим окружение по умолчанию (stage), что упростит команду для тестового окружения.
+
+Определим окружение по умолчанию в конфиге Ansible (файл ansible/ansible.cfg):
+```
+[defaults]
+inventory = ./environments/stage/inventory # Inventory по-умолчанию задается здесь
+remote_user = appuser
+private_key_file = ~/.ssh/appuser
+host_key_checking = False
+```
+
+Заодно улучшим наш ansible.cfg. Для этого приведем его к такому виду:
+```
+[defaults]
+inventory = ./environments/stage/inventory
+remote_user = appuser
+private_key_file = ~/.ssh/appuser
+# Отключим проверку SSH Host-keys (поскольку они всегда разные для новых инстансов)
+host_key_checking = False
+# Отключим создание *.retry-файлов (они нечасто нужны, но мешаются под руками)
+retry_files_enabled = False
+# Явно укажем расположение ролей (можно задать несколько путей через ; )
+roles_path = ./roles
+[diff]
+# Включим обязательный вывод diff при наличии изменений и вывод 5 строк контекста
+always = True
+context = 5
+```
+Работа с Community-ролями:
+
+Как мы уже говорили, коммьюнити-роли в основном находятся на портале Ansible Galaxy и работа с ними производится с помощью утилиты ansible-galaxy и файла requirements.yml
+Хорошей практикой является разделение зависимостей ролей (requirements.yml) по окружениям.
+
+1. Создадим файлы environments/stage/requirements.yml и environments/prod/requirements.yml
+2. Добавим в них запись вида:
+```
+- src: jdauphant.nginx
+version: v2.21.1
+```
+3. Установим роль:
+```
+ansible-galaxy install -r environments/stage/requirements.yml
+```
+4. Комьюнити-роли не стоит коммитить в свой репозиторий, для этого добавим в .gitignore запись: jdauphant.nginx
+
+- [документация роли](https://github.com/jdauphant/ansible-role-nginx)
+
+Работа с Ansible Vault:
+Для безопасной работы с приватными данными (пароли, приватные ключи и т.д.) используется механизм. Данные сохраняются в зашифрованных файлах, которые при выполнении плейбука автоматически расшифровываются. Таким образом, приватные данные можно хранить в системе контроля версий. 
+Для шифрования используется мастер-пароль (aka vault key). Его нужно передавать команде ansible-playbook при запуске, либо указать файл с ключом в ansible.cfg. Не допускайте хранения этого ключ-файла в Git! Используйте для разных окружений разный vault key.
+
+Подготовим плейбук для создания пользователей, пароль пользователей будем хранить в зашифрованном виде в файле credentials.yml:
+1. Создайте файл vault.key со произвольной строкой ключа
+2. Изменим файл ansible.cfg, добавим опцию
+vault_password_file в секцию [defaults]
+[defaults]
+...
+vault_password_file = vault.key
+
+❗ Обязательно добавьте в .gitignore файл vault.key. А еще лучше - храните его out-of-tree, аналогично ключам SSH (например, в папке ~/.ansible/vault.key)
+
+Создадим файл с данными пользователей для каждого окружения
+Файл для prod (ansible/environments/prod/credentials.yml):
+```
+---
+credentials:
+  users:
+    admin:
+      password: admin123
+      groups: sudo
+```
+Файл для stage (ansible/environments/stage/credentials.yml):
+```
+---
+credentials:
+  users:
+    admin:
+      password: qwerty123
+      groups: sudo
+    qauser:
+      password: test123
+```
+
+Работа с Ansible Vault
+1. Зашифруем файлы используя vault.key (используем одинаковый для всех окружений):
+```
+$ ansible-vault encrypt environments/prod/credentials.yml
+$ ansible-vault encrypt environments/stage/credentials.yml
+```
+2. Проверьте содержимое файлов, убедитесь что они зашифрованы
+3. Добавьте вызов плейбука в файл site.yml и выполните его для stage окружения:
+
+Для редактирования переменных нужно использовать команду ansible-vault edit <file>
+А для расшифровки: ansible-vault decrypt <file>
+
+Нюансы:
+Загружаются все файлы в group_vars для хоста.
+Ansible загружает все переменные хоста из файлов групп, которым он принадлежит в инвентори, даже если группа в плейбуке не участвует в сценарии.
+
+Особенности синтаксиса ролей:
+Директива import_role выполняется препроцессором, до запуска плейбука.
+Это значит, что:
+1. Не поддерживаются циклы (директива loop:)
+2. Зато нормально работает директива delegate_to
+3. Директива when: не имеет доступа к переменным групп хостов
+4. Таски из роли всегда выполняются в playbook (но если есть условие when: мы просто увидим кучу [SKIPPED] тасков)
+
+Директива include_role выполняется в процессе выполнения
+сценария (аналог roles:).
+Это значит, что:
+1. Она имеет доступ к актуальному состоянию переменных и фактов
+2. Если условие не выполняется, то задачи роли не будут запущены
+3. Мы можем использовать цикл с директивой loop:
+```
+- include_role: name="{{ item }}"
+when: ansible_local.reddit.is_host_provisioned == False
+loop: ['jdauphant.nginx', 'mongodb', 'reddit-app']
+```
+Но... вот так - не работает:
+```
+- include_role:
+name: nginx
+delegate_to: balancer-1
+```
+
+delegate_to:, tags: и подобные атрибуты таска include_role -
+не применяются для вложенных тасков.
