@@ -769,3 +769,12 @@ delegate_to: balancer-1
 
 delegate_to:, tags: и подобные атрибуты таска include_role -
 не применяются для вложенных тасков.
+
+# Homework 13 Ansible-4
+
+- [Эффективная разработка и сопровождение Ansible-ролей](https://habr.com/en/company/oleg-bunin/blog/431542/)
+- [Почему мы уверены в том, что развернули](https://habr.com/en/post/323472/)
+- [Пирамида тестов на практике](https://habr.com/en/post/358950/)
+
+
+
