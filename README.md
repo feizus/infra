@@ -769,3 +769,97 @@ delegate_to: balancer-1
 
 delegate_to:, tags: и подобные атрибуты таска include_role -
 не применяются для вложенных тасков.
+
+# Homework 13 Ansible-4
+
+- [Эффективная разработка и сопровождение Ansible-ролей](https://habr.com/en/company/oleg-bunin/blog/431542/)
+- [Почему мы уверены в том, что развернули](https://habr.com/en/post/323472/)
+- [Пирамида тестов на практике](https://habr.com/en/post/358950/)
+
+- [Инструкции по установке virtualenv](https://docs.python-guide.org/dev/virtualenvs/)
+
+Использование virtualenv:
+Установка:
+```
+pip3 install --user pipenv
+```
+Запуск скрипта:
+```
+pipenv run python main.py
+```
+Переход в окружение:
+```
+pipenv shell
+```
+ansible/requirements.txt
+```
+ansible>=2.4
+testinfra<4,>=3.0.6
+molecule==2.22
+python-vagrant>=0.5.15
+```
+
+```
+$ pip install -r requirements.txt
+```
+Проверка версий:
+```bash
+molecule --version
+ansible --version
+```
+
+Тестирование роли:
+```bash
+cd ansible/roles/db
+molecule init scenario --scenario-name default -r db -d vagrant
+```
+Добавим несколько тестов, используя модули Testinfra, для проверки конфигурации, настраиваемой ролью db:
+db/molecule/default/tests/test_default.py
+```
+import os
+
+import testinfra.utils.ansible_runner
+
+testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
+    os.environ['MOLECULE_INVENTORY_FILE']).get_hosts('all')
+
+# check if MongoDB is enabled and running
+def test_mongo_running_and_enabled(host):
+    mongo = host.service("mongod")
+    assert mongo.is_running
+    assert mongo.is_enabled
+
+# check if configuration file contains the required line
+def test_config_file(host):
+    config_file = host.file('/etc/mongod.conf')
+    assert config_file.contains('bindIp: 0.0.0.0')
+    assert config_file.is_file
+```
+Описание тестовой машины, которая создается Molecule для тестов содержится в файле db/molecule/default/molecule.yml
+Создадим VM для проверки роли. В директории ansible/roles/db выполните команду:
+```bash
+molecule create
+```
+Посмотрим список созданных инстансов, которыми управляет Molecule:
+```bash
+molecule list
+```
+Instance Name Driver Name Provisioner Name Created Converged
+--------------- ------------- ------------------ --------- -----------
+instance      Vagrant     Ansible          True    False
+Также можем при необходимости дебага подключиться по SSH внутрь VM:
+```bash
+molecule login -h instance
+```
+
+Molecule init генерирует плейбук для применения нашей роли. Данный плейбук можно посмотреть по пути db/molecule/default/playbook.yml
+
+Применим playbook.yml, в котором вызывается наша роль к созданному хосту:
+```bash
+molecule converge
+```
+Прогоним тесты:
+```bash
+molecule verify
+```
+- [Modules testinfra](https://testinfra.readthedocs.io/en/latest/modules.html)

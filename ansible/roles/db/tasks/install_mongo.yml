@@ -1,0 +1,40 @@
+---
+- name: Install gnupg package
+  apt:
+    name: gnupg
+    state: present
+  tags: install
+
+# Добавим ключ репозитория для последующей работы с ним
+- name: install python-apt 
+  raw: test -e  /usr/lib/python2.7/dist-packages/apt || (apt install -y python2.7-apt)
+  tags: install
+
+- name: Add an Apt signing key
+  apt_key:
+    url: https://www.mongodb.org/static/pgp/server-4.2.asc
+    state: present
+  tags: install
+    
+
+# Подключаем репозиторий с пакетами mongodb
+- name: Add APT repository
+  apt_repository:
+    repo: deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/4.2 multiverse
+    state: present
+  tags: install
+
+# Выполним установку пакета
+- name: Install mongodb package
+  apt:
+    name: 'mongodb-org'
+    state: present
+    update_cache: yes
+  tags: install
+
+# Включаем сервис
+- name: Configure service supervisor
+  systemd:
+    name: mongod
+    enabled: yes
+  tags: install
