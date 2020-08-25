@@ -1,0 +1,42 @@
+
+Vagrant.configure("2") do |config|
+
+  config.vm.provider :virtualbox do |v|
+    v.memory = 512                                       #-memory
+  end
+
+  config.vm.define "dbserver" do |db|
+    db.vm.box = "ubuntu/xenial64"                       #-vm.box
+    db.vm.hostname = "dbserver"                         #-vm name
+    db.vm.network :private_network, ip: "10.10.10.10"   #-private ip dbserver
+
+    db.vm.provision "ansible" do |ansible|              #-provision
+      ansible.playbook = "playbooks/site.yml"           #-playbooks
+      ansible.groups = {
+      "db" => ["dbserver"],
+      "db:vars" => {"mongo_bind_ip" => "0.0.0.0"}       #-vars
+      }
+    end
+  end
+  
+  config.vm.define "appserver" do |app|
+    app.vm.box = "ubuntu/xenial64"                      #-vm.box
+    app.vm.hostname = "appserver"                       #-vm name
+    app.vm.network :private_network, ip: "10.10.10.20"  #-private ip appserver
+
+    app.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbooks/site.yml"
+      ansible.user="vagrant"
+      ansible.groups = {
+      "app" => ["appserver"],
+      "app:vars" => { "db_host" => "10.10.10.10"}
+      }
+      ansible.extra_vars = {
+        ansible_user: "ubuntu"
+      }
+      ansible.extra_vars = {
+        "deploy_user" => "ubuntu"
+      }
+    end
+  end
+end
