@@ -517,11 +517,11 @@ deploy.yml
 
 Применение плейбука к хостам осуществляется при помощи
 команды ansible-playbook.
-
+```
 --check — позволяет произвести "пробный прогон" плейбука.
 --limit — ограничиваем группу хостов, для которых применить плейбук
 --tags — ограничиваем группу тасков, для которых установлен нужный тег
-
+```
 ```bash
 ansible-playbook reddit_app.yml --check --limit app --tags app-tag
 ```
@@ -544,6 +544,7 @@ $ ansible-galaxy init db
 ```bash
 $ tree db
 ```
+```
 db
 ├── README.md
 ├── defaults # <-- Директория для переменных по умолчанию
@@ -559,9 +560,9 @@ db
 │   └── test.yml
 └── vars # <-- Директория для переменных, которые не должны
     └──main.yml # переопределяться пользователем
-
+```
 Если роль разрастается:
-
+```
 example-role
 ├── README.md
 ├── defaults
@@ -574,14 +575,15 @@ example-role
 │   └── main.yml
 └── meta
     └──main.yml
-
+```
+```
 example-role/tasks/main.yml
 - include: repository.yml
 - include: install.yml
 - include: configure.yml
-
+```
 Кросс-платформенные роли:
-
+```
 example-role
 ├── README.md
 ├── defaults
@@ -592,16 +594,18 @@ example-role
 │   └── main.yml
 └──meta
     └──main.yml
-
+```
+```
 example-role/tasks/main.yml
 - include: linux.yml
 when: ansible_os_family == 'RedHat'
 - include: windows.yml
 when: ansible_os_family == 'Windows'
-
+```
 - [Пример ansible.cfg с описанием всех параметров доступен](https://raw.githubusercontent.com/ansible/ansible/devel/examples/ansible.cfg)
 
 Пример файла ansible.cfg:
+```
 [defaults]
 roles_path = ./.imported_roles:./roles
 timeout = 10
@@ -612,8 +616,10 @@ ssh_args=-o ForwardAgent=yes
 [diff]
 always = True
 context = 5
+```
 
 Окружения в Ansible:
+```
 ansible.cfg
 playbooks
 environments
@@ -631,12 +637,13 @@ environments
     ├── requirements.yml
     ├── credentials.yml # У окружений отдельные файлы с зашифрованными переменными
     └──inventory
-
+```
 Типовые файлы с переменными окружений:
+```
 environments/<env_name>/group_vars
 environments/<env_name>/host_vars
 environments/<env_name>/credentials.yml
-
+```
 Например, чтобы задеплоить приложение на prod окружении мы должны теперь написать:
 ```bash
 $ ansible-playbook -i environments/prod/inventory deploy.yml
@@ -694,12 +701,13 @@ ansible-galaxy install -r environments/stage/requirements.yml
 Для шифрования используется мастер-пароль (aka vault key). Его нужно передавать команде ansible-playbook при запуске, либо указать файл с ключом в ansible.cfg. Не допускайте хранения этого ключ-файла в Git! Используйте для разных окружений разный vault key.
 
 Подготовим плейбук для создания пользователей, пароль пользователей будем хранить в зашифрованном виде в файле credentials.yml:
+```
 1. Создайте файл vault.key со произвольной строкой ключа
-2. Изменим файл ansible.cfg, добавим опцию
-vault_password_file в секцию [defaults]
+2. Изменим файл ansible.cfg, добавим опцию vault_password_file в секцию [defaults]
 [defaults]
 ...
 vault_password_file = vault.key
+```
 
 ❗ Обязательно добавьте в .gitignore файл vault.key. А еще лучше - храните его out-of-tree, аналогично ключам SSH (например, в папке ~/.ansible/vault.key)
 
@@ -895,27 +903,31 @@ docker attach container_id
 ```
 
 Docker run
+```
 • Через параметры передаются лимиты(cpu/mem/disk), ip, volumes
 • -i – запускает контейнер в foreground режиме (docker attach)
 • -d – запускает контейнер в background режиме
 • -t создает TTY
 • docker run -it ubuntu:16.04 bash
 • docker run -dt nginx:latestИзбавляем бизнес от ИТ-зависимости
-
+```
 Docker exec
+```
 • Запускает новый процесс внутри контейнера
 • Например, bash внутри контейнера с приложением
-
+```
 Docker commit
+```
 • Создает image из контейнера
 • Контейнер при этом остается запущенным
-
+```
 Docker kill & stop
+```
 • kill сразу посылает SIGKILL
 • stop посылает SIGTERM, и через 10 секунд(настраивается) посылает SIGKILL
 • SIGTERM - сигнал остановки приложения
 • SIGKILL - безусловное завершение процесса
-
+```
 Docker kill
 ```
 docker ps -q
@@ -923,13 +935,15 @@ docker kill $(docker ps -q)
 ```
 
 docker system df
+```
 • Отображает сколько дискового пространства занято образами, контейнерами и volume’ами
 • Отображает сколько из них не используется и возможно удалить
-
+```
 Docker rm & rmi
+```
 • rm удаляет контейнер, можно добавить флаг -f, чтобы удалялся работающий container(будет послан sigkill)
 • rmi удаляет image, если от него не зависят запущенные контейнеры
-
+```
 docker rm $(docker ps -a -q) # удалит все незапущенные контейнеры
 docker rmi $(docker images -q)
 
